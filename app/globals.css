@@ -1,0 +1,199 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * Design tokens as CSS variables. Colors are stored as HSL channel triples
+ * (without hsl()) so Tailwind can wrap them with alpha support.
+ *
+ * Brand reference hexes (do NOT use raw in components):
+ *   navy/primary  #0B1F4D  -> 222 76% 17%
+ *   navy dark     #07153A  -> 221 79% 13%
+ *   gold/accent   #C9A961  -> 41 49% 58%
+ *   teal/vendor   #0e7490  -> 192 82% 31%
+ */
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 40%;
+
+    --border: 214 32% 88%;
+    --input: 214 32% 84%;
+    --ring: 222 76% 17%;
+
+    /* Brand */
+    --primary: 222 76% 17%; /* #0B1F4D */
+    --primary-dark: 221 79% 13%; /* #07153A */
+    --primary-foreground: 0 0% 100%;
+
+    --accent: 41 49% 58%; /* #C9A961 */
+    --accent-foreground: 222 76% 12%;
+
+    --vendor: 192 82% 31%; /* #0e7490 */
+    --vendor-foreground: 0 0% 100%;
+
+    /* Semantic — AA-contrast bg/fg/border */
+    --success: 142 51% 96%;
+    --success-foreground: 142 64% 24%;
+    --success-border: 142 40% 70%;
+
+    --warning: 41 96% 95%;
+    --warning-foreground: 30 80% 28%;
+    --warning-border: 41 80% 65%;
+
+    --danger: 0 86% 97%;
+    --danger-foreground: 0 70% 38%;
+    --danger-border: 0 75% 75%;
+
+    --info: 210 100% 96%;
+    --info-foreground: 213 80% 34%;
+    --info-border: 210 80% 72%;
+
+    --neutral: 210 20% 96%;
+    --neutral-foreground: 215 18% 32%;
+    --neutral-border: 214 20% 78%;
+
+    /* Sidebar — navy (client portal) by default; .theme-vendor overrides to teal. */
+    --sidebar-background: 222 76% 17%; /* #0B1F4D navy */
+    --sidebar-foreground: 210 40% 96%;
+    --sidebar-primary: 41 49% 58%; /* gold accent */
+    --sidebar-primary-foreground: 222 76% 12%;
+    --sidebar-accent: 222 55% 27%; /* lighter navy for hover/active */
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 222 40% 28%;
+    --sidebar-ring: 41 49% 58%;
+
+    /* Radius */
+    --radius-sm: 0.25rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 1rem;
+
+    /* Motion */
+    --motion-fast: 120ms;
+    --motion-base: 200ms;
+    --motion-slow: 320ms;
+  }
+
+  .dark {
+    --background: 221 60% 8%;
+    --foreground: 210 40% 96%;
+
+    --card: 221 55% 11%;
+    --card-foreground: 210 40% 96%;
+
+    --popover: 221 55% 11%;
+    --popover-foreground: 210 40% 96%;
+
+    --muted: 221 40% 18%;
+    --muted-foreground: 215 20% 70%;
+
+    --border: 221 35% 22%;
+    --input: 221 35% 26%;
+    --ring: 41 49% 58%;
+
+    --primary: 222 70% 60%;
+    --primary-dark: 221 79% 13%;
+    --primary-foreground: 222 80% 10%;
+
+    --accent: 41 55% 62%;
+    --accent-foreground: 222 76% 12%;
+
+    --vendor: 192 70% 50%;
+    --vendor-foreground: 222 80% 10%;
+
+    --success: 142 40% 16%;
+    --success-foreground: 142 60% 78%;
+    --success-border: 142 35% 34%;
+
+    --warning: 33 50% 18%;
+    --warning-foreground: 41 90% 76%;
+    --warning-border: 35 45% 38%;
+
+    --danger: 0 45% 18%;
+    --danger-foreground: 0 80% 80%;
+    --danger-border: 0 45% 40%;
+
+    --info: 213 50% 18%;
+    --info-foreground: 210 90% 80%;
+    --info-border: 213 45% 40%;
+
+    --neutral: 221 30% 20%;
+    --neutral-foreground: 210 25% 78%;
+    --neutral-border: 221 25% 34%;
+  }
+
+  /* Vendor portal recolors the sidebar to the teal brand. */
+  .theme-vendor {
+    --sidebar-background: 192 82% 31%; /* #0e7490 teal */
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 0 0% 100%;
+    --sidebar-primary-foreground: 192 82% 24%;
+    --sidebar-accent: 192 70% 40%; /* lighter teal for hover/active */
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 192 50% 42%;
+    --sidebar-ring: 41 49% 58%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    /* Body min 14px per design system. */
+    font-size: 0.875rem;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Numeric IDs and money use the mono face. */
+  .font-numeric {
+    @apply font-mono tabular-nums;
+  }
+}
+
+@layer utilities {
+  /**
+   * Thin, subtle scrollbar that matches the surrounding surface.
+   * Uses the current text color at low alpha so it adapts to any theme
+   * (navy sidebar, teal vendor sidebar, etc.) instead of the loud OS default.
+   */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--sidebar-foreground) / 0.25) transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--sidebar-foreground) / 0.22);
+    border-radius: 9999px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--sidebar-foreground) / 0.4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
