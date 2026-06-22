@@ -75,37 +75,37 @@ export default function VendorPurchaseOrdersPage() {
           const invoiceable = ["partially_received", "received"].includes(po.status);
           if (!ackPending && !shippable && !invoiceable) return null;
           return (
-            <div className="text-right">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon-sm" aria-label="Respond"><MoreHorizontal className="size-4" /></Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {ackPending && (
-                    <>
-                      <DropdownMenuItem onClick={() => run(po.code, "acknowledge")}>
-                        <Check className="size-4" /> Acknowledge
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setDlg({ code: po.code, action: "query" })}>
-                        <MessageCircleQuestion className="size-4" /> Raise query
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="text-danger-foreground" onClick={() => setDlg({ code: po.code, action: "reject" })}>
-                        <X className="size-4" /> Reject
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                  {shippable && (
-                    <DropdownMenuItem onClick={() => setAsnFor(po.code)}>
-                      <Truck className="size-4" /> Submit ASN
+            <div className="flex flex-wrap justify-end gap-1.5">
+              {ackPending && (
+                <Button size="sm" variant="gold" onClick={() => run(po.code, "acknowledge")} disabled={ack.isPending}>
+                  <Check className="size-4" /> Acknowledge
+                </Button>
+              )}
+              {shippable && (
+                <Button size="sm" variant="outline" onClick={() => setAsnFor(po.code)}>
+                  <Truck className="size-4" /> ASN
+                </Button>
+              )}
+              {invoiceable && (
+                <Button size="sm" variant="teal" onClick={() => setInvFor(po.code)}>
+                  <ReceiptText className="size-4" /> Invoice
+                </Button>
+              )}
+              {ackPending && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon-sm" aria-label="More responses"><MoreHorizontal className="size-4" /></Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => setDlg({ code: po.code, action: "query" })}>
+                      <MessageCircleQuestion className="size-4" /> Raise query
                     </DropdownMenuItem>
-                  )}
-                  {invoiceable && (
-                    <DropdownMenuItem onClick={() => setInvFor(po.code)}>
-                      <ReceiptText className="size-4" /> Submit Invoice
+                    <DropdownMenuItem className="text-danger-foreground" onClick={() => setDlg({ code: po.code, action: "reject" })}>
+                      <X className="size-4" /> Reject
                     </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
           );
         },

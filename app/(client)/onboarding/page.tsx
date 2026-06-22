@@ -9,14 +9,33 @@ import { useApplications } from "@/features/onboarding/api";
 import type { ApplicationListItem } from "@/features/onboarding/types";
 import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { EmptyState } from "@/components/shared/states";
 import { SendInviteDialog } from "@/features/onboarding/SendInviteDialog";
 import { formatDateTime } from "@/lib/format";
 
+const OB_STATUSES = [
+  ["all", "All statuses"],
+  ["awaiting_docs", "Awaiting Docs"],
+  ["under_review", "Under Review"],
+  ["finance_review", "Finance Review"],
+  ["approved", "Approved"],
+  ["rejected", "Rejected"],
+] as const;
+
 export default function OnboardingPage() {
   const router = useRouter();
   const { data, isLoading } = useApplications();
+  const [status, setStatus] = React.useState("all");
+  // Sidebar "Approval Workflow" deep-links via ?status=under_review.
+  React.useEffect(() => {
+    const s = new URLSearchParams(window.location.search).get("status");
+    if (s) setStatus(s);
+  }, []);
+  const rows = (data ?? []).filter((a) => status === "all" || a.status === status);
 
   const columns = React.useMemo<ColumnDef<ApplicationListItem>[]>(
     () => [
@@ -85,9 +104,15 @@ export default function OnboardingPage() {
 
       <DataTable
         columns={columns}
-        data={data ?? []}
+        data={rows}
         isLoading={isLoading}
         onRowClick={(a) => router.push(`/onboarding/${a.code}`)}
+        toolbar={
+          <Select value={status} onValueChange={setStatus}>
+            <SelectTrigger className="w-48"><SelectValue placeholder="Status" /></SelectTrigger>
+            <SelectContent>{OB_STATUSES.map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}</SelectContent>
+          </Select>
+        }
         empty={
           <EmptyState
             title="No onboarding applications yet"

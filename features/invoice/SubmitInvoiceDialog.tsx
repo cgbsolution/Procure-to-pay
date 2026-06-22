@@ -18,6 +18,16 @@ import { useSubmitInvoice } from "@/features/invoice/api";
 import { ApiError } from "@/lib/api-client";
 import { formatINR } from "@/lib/format";
 
+interface EditableLine {
+  po_line_id?: string;
+  item_desc: string;
+  hsn_code?: string;
+  uom: string;
+  qty: string;
+  rate: string;
+  gst_rate: string;
+}
+
 export function SubmitInvoiceDialog({
   poCode,
   open,
@@ -32,14 +42,24 @@ export function SubmitInvoiceDialog({
   const today = new Date().toISOString().slice(0, 10);
   const [invNo, setInvNo] = React.useState("");
   const [invDate, setInvDate] = React.useState(today);
+  const [lines, setLines] = React.useState<EditableLine[]>([]);
 
-  // Bill the received quantity at PO rates; tax split by place of supply.
-  const lines = (po?.lines ?? []).map((l) => ({
-    po_line_id: l.id, item_desc: l.item_desc, hsn_code: l.hsn_code, uom: l.uom,
-    qty: l.qty_received, rate: l.rate, gst_rate: l.gst_rate,
-  }));
-  const taxable = lines.reduce((s, l) => s + Number(l.qty) * Number(l.rate), 0);
-  const tax = lines.reduce((s, l) => s + (Number(l.qty) * Number(l.rate) * Number(l.gst_rate)) / 100, 0);
+  // Pre-fill lines from received quantities at PO rates whenever the PO loads.
+  React.useEffect(() => {
+    if (!po) { setLines([]); return; }
+    setLines((po.lines ?? []).map((l) => ({
+      po_line_id: l.id, item_desc: l.item_desc, hsn_code: l.hsn_code, uom: l.uom,
+      qty: String(l.qty_received), rate: String(l.rate), gst_rate: String(l.gst_rate),
+    })));
+  }, [po]);
+
+  function setLine(i: number, patch: Partial<EditableLine>) {
+    setLines((ls) => ls.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
+  }
+
+  const num = (s: string) => (Number.isFinite(Number(s)) ? Number(s) : 0);
+  const taxable = lines.reduce((s, l) => s + num(l.qty) * num(l.rate), 0);
+  const tax = lines.reduce((s, l) => s + (num(l.qty) * num(l.rate) * num(l.gst_rate)) / 100, 0);
   const inter = !!po?.is_inter_state;
   const cgst = inter ? 0 : tax / 2;
   const sgst = inter ? 0 : tax / 2;
@@ -48,12 +68,17 @@ export function SubmitInvoiceDialog({
   async function onSubmit() {
     if (!po || !poCode) return;
     if (!invNo.trim()) { toast.error("Enter your invoice number"); return; }
-    if (lines.every((l) => Number(l.qty) <= 0)) { toast.error("Nothing received to invoice yet"); return; }
+    if (lines.every((l) => num(l.qty) <= 0)) { toast.error("Enter a quantity to invoice"); return; }
     try {
       const inv = await submit.mutateAsync({
         po_code: poCode, vendor_invoice_no: invNo, invoice_date: invDate, source: "portal",
         cgst: cgst.toFixed(2), sgst: sgst.toFixed(2), igst: igst.toFixed(2),
-        lines: lines.map((l) => ({ ...l, qty: String(l.qty), rate: String(l.rate), gst_rate: String(l.gst_rate) })),
+        lines: lines
+          .filter((l) => num(l.qty) > 0)
+          .map((l) => ({
+            po_line_id: l.po_line_id, item_desc: l.item_desc, hsn_code: l.hsn_code, uom: l.uom,
+            qty: String(num(l.qty)), rate: String(num(l.rate)), gst_rate: String(num(l.gst_rate)),
+          })),
       });
       const s = inv.status;
       toast.success(`Invoice ${inv.code} submitted`, {
@@ -74,7 +99,7 @@ export function SubmitInvoiceDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><ReceiptText className="size-5" /> Submit Invoice</DialogTitle>
           <DialogDescription>
-            Against {poCode}. Lines are pre-filled from received quantities at PO rates; GST splits by place of supply.
+            Against {poCode}. Lines are pre-filled from received quantities at PO rates — adjust qty / rate / GST% if needed.
           </DialogDescription>
         </DialogHeader>
 
@@ -90,7 +115,7 @@ export function SubmitInvoiceDialog({
             <TableRow className="hover:bg-transparent">
               <TableHead>Item</TableHead><TableHead>HSN</TableHead>
               <TableHead className="text-right">Qty</TableHead><TableHead className="text-right">Rate</TableHead>
-              <TableHead className="text-right">GST%</TableHead>
+              <TableHead className="text-right">GST%</TableHead><TableHead className="text-right">Amount</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -98,9 +123,19 @@ export function SubmitInvoiceDialog({
               <TableRow key={i} className="hover:bg-transparent">
                 <TableCell className="font-medium">{l.item_desc}</TableCell>
                 <TableCell className="font-mono text-xs">{l.hsn_code ?? "—"}</TableCell>
-                <TableCell className="text-right font-mono text-xs">{l.qty}</TableCell>
-                <TableCell className="text-right font-mono text-xs">{formatINR(Number(l.rate))}</TableCell>
-                <TableCell className="text-right font-mono text-xs">{Number(l.gst_rate)}%</TableCell>
+                <TableCell className="text-right">
+                  <Input type="number" step="any" className="h-8 w-20 text-right font-mono text-xs"
+                    value={l.qty} onChange={(e) => setLine(i, { qty: e.target.value })} />
+                </TableCell>
+                <TableCell className="text-right">
+                  <Input type="number" step="any" className="h-8 w-24 text-right font-mono text-xs"
+                    value={l.rate} onChange={(e) => setLine(i, { rate: e.target.value })} />
+                </TableCell>
+                <TableCell className="text-right">
+                  <Input type="number" step="any" className="h-8 w-16 text-right font-mono text-xs"
+                    value={l.gst_rate} onChange={(e) => setLine(i, { gst_rate: e.target.value })} />
+                </TableCell>
+                <TableCell className="text-right font-mono text-xs">{formatINR(num(l.qty) * num(l.rate))}</TableCell>
               </TableRow>
             ))}
           </TableBody>
